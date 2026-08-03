@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>NekoMail</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #fff5f9;
+      margin: 0;
+      padding: 2em;
+      color: #333;
+    }
+    h1 { color: #e07ea8; }
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0.7em;
+      font-size: 1em;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      margin: 0.75em 0;
+    }
+    button {
+      padding: 0.7em 1.4em;
+      font-size: 1em;
+      border-radius: 8px;
+      border: none;
+      background: #f5a3c7;
+      color: #fff;
+    }
+    #status { color: #a55; margin-top: 0.5em; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+  <div id="setup" style="display:none;">
+    <h1>NekoMail</h1>
+    <p>
+      Enter the address of your NekoMail desktop app (shown in its tray
+      icon / window), e.g. <code>http://192.168.1.20:8090</code>. This app
+      just opens that server -- it doesn't store any mail itself.
+    </p>
+    <input id="url" type="text" placeholder="http://192.168.1.20:8090" autocapitalize="off" autocorrect="off" />
+    <button id="go">Connect</button>
+    <div id="status"></div>
+  </div>
+  <script>
+    // No copy of the NekoMail frontend ships in this app -- it always loads
+    // the live app from the server URL below, saved via Capacitor
+    // Preferences so it's remembered across restarts. See NEXT_STEPS.md for
+    // why (avoids reworking every same-origin assumption in the real
+    // frontend for cross-origin use).
+    const KEY = "nekomail_server_url";
+
+    async function main() {
+      const { Preferences } = Capacitor.Plugins;
+      const { value } = await Preferences.get({ key: KEY });
+      if (value) {
+        window.location.href = value;
+        return;
+      }
+      document.getElementById("setup").style.display = "block";
+      document.getElementById("go").addEventListener("click", async () => {
+        const status = document.getElementById("status");
+        let url = document.getElementById("url").value.trim().replace(/\/+$/, "");
+        if (!url) return;
+        if (!/^https?:\/\//i.test(url)) {
+          url = "http://" + url;
+        }
+        status.textContent = "Connecting...";
+        await Preferences.set({ key: KEY, value: url });
+        window.location.href = url;
+      });
+    }
+    main();
+  </script>
+</body>
+</html>

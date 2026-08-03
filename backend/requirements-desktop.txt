@@ -1,0 +1,10 @@
+# Extra dependencies for the standalone Windows desktop app (launcher.py /
+# desktop_app.py) and its PyInstaller build. Kept separate from
+# requirements.txt so the Docker image doesn't pull in GUI/build tooling.
+-r requirements.txt
+
+pywebview==5.3.2
+pystray==0.19.5
+pillow==11.0.0
+python-dotenv==1.0.1
+pyinstaller==6.11.1

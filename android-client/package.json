@@ -1,0 +1,17 @@
+{
+  "name": "nekomail-android-client",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Thin Android wrapper for NekoMail -- opens the configured server URL in a native WebView. No copy of the frontend ships in this app.",
+  "scripts": {
+    "sync": "cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/preferences": "^8.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/cli": "^8.5.0"
+  }
+}
