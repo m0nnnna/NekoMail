@@ -1,0 +1,114 @@
+:root {
+  --bg-body: #fff5f9;
+  --bg-primary: #ffffff;
+  --bg-elevated: #fff0f6;
+  --bg-hover: #ffe4ef;
+  --text-primary: #3a2233;
+  --text-secondary: #8a6b7d;
+  --text-muted: #b79aab;
+  --border: #f3d3e3;
+
+  --accent: #f5a3c7;
+  --accent-strong: #e8639f;
+  --accent-contrast: #ffffff;
+
+  --success: #7fd1ae;
+  --warning: #f5c26b;
+  --danger: #e8748a;
+
+  --unread-dot: #e8639f;
+  --star: #f5c26b;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --shadow-soft: 0 4px 16px rgba(232, 99, 159, 0.12);
+
+  --font-sans: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+}
+
+.dark-mode {
+  --bg-body: #1c1420;
+  --bg-primary: #241a2b;
+  --bg-elevated: #2c2035;
+  --bg-hover: #362840;
+  --text-primary: #f3e6ee;
+  --text-secondary: #cba9c1;
+  --text-muted: #8a6f83;
+  --border: #3a2c44;
+
+  --accent: #d97bb0;
+  --accent-strong: #f093c4;
+  --accent-contrast: #1c1420;
+
+  --success: #6fc79c;
+  --warning: #e0b25f;
+  --danger: #e0748a;
+
+  --unread-dot: #f093c4;
+  --star: #e0b25f;
+
+  --shadow-soft: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-body);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+}
+
+#app {
+  min-height: 100vh;
+}
+
+/* Cute cat-ear accent for the wordmark, e.g. <span class="logo-ears">NekoMail</span> */
+.logo-ears {
+  position: relative;
+  display: inline-block;
+}
+
+.logo-ears::before,
+.logo-ears::after {
+  content: "";
+  position: absolute;
+  top: -0.4em;
+  width: 0.55em;
+  height: 0.55em;
+  background: var(--accent-strong);
+  border-radius: 30% 70% 70% 30% / 60% 60% 40% 40%;
+}
+
+.logo-ears::before {
+  left: -0.1em;
+  transform: rotate(-25deg);
+}
+
+.logo-ears::after {
+  right: -0.1em;
+  transform: rotate(25deg);
+}
+
+.paw-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.4em;
+  height: 1.4em;
+  padding: 0 0.35em;
+  border-radius: 999px;
+  background: var(--unread-dot);
+  color: var(--accent-contrast);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+button {
+  font-family: inherit;
+}

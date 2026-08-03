@@ -1,0 +1,37 @@
+# Secrets / local config
+.env
+backend/.env
+
+# Python
+backend/.venv/
+**/__pycache__/
+*.pyc
+
+# Node
+frontend/node_modules/
+android-client/node_modules/
+
+# Build output
+frontend/dist/
+backend/build/
+backend/dist/
+backend/nekomail-desktop.spec.bak
+
+# PyInstaller
+*.spec.bak
+
+# Local mail data (bind-mounted DB + .eml storage, never committed)
+data/
+
+# Android
+android-client/android/app/build/
+android-client/android/build/
+android-client/android/.gradle/
+android-client/android/local.properties
+android-client/android/app/release/
+android-client/android/app/debug/
+
+# Editor/OS
+.vscode/
+.DS_Store
+Thumbs.db

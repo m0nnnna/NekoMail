@@ -1,0 +1,33 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: backend/app/Dockerfile
+    env_file: .env
+    environment:
+      # SQLite database stored on the host at ./data/nekomail.db (bind-mounted
+      # to /app/data below). The four slashes denote an absolute container path.
+      DATABASE_URL: "sqlite+aiosqlite:////app/data/nekomail.db"
+      MAIL_STORAGE_PATH: "/app/data/mail"
+    volumes:
+      # Database + raw .eml mail store. MUST be a local disk path, not a
+      # network-mapped drive (e.g. N:) -- Docker Desktop's bind-mount for a
+      # mapped drive silently backs onto storage that doesn't support the
+      # mmap() semantics SQLite's WAL mode needs, which causes a hard
+      # "Bus error (core dumped)" crash-loop (hit live 2026-08-02, root
+      # cause confirmed: identical Bus error reproduced by a totally
+      # unrelated fresh container just opening the file; the same file
+      # copied to local disk passed PRAGMA integrity_check clean).
+      # Back up .env alongside this folder — it holds the encryption keys
+      # needed to read stored mail credentials.
+      - C:\NekoMailData:/app/data
+    ports:
+      - "${APP_PORT:-8090}:8000"
+    networks:
+      - internal
+    restart: unless-stopped
+
+networks:
+  internal:
