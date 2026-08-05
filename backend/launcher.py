@@ -32,7 +32,13 @@ sys.path.insert(0, str(APP_DIR))
 from cryptography.fernet import Fernet  # noqa: E402
 from dotenv import dotenv_values  # noqa: E402
 
-APPDATA_ROOT = Path(os.environ["APPDATA"]) / "NekoMail"
+if sys.platform == "win32":
+    APPDATA_ROOT = Path(os.environ["APPDATA"]) / "NekoMail"
+else:
+    # nekOS (Void Linux, WSL2) port -- the session runs as root, so this is
+    # /root/.nekomail. Same single-directory shape as the Windows path
+    # (config.env + data/{nekomail.db, mail/}), just a different root.
+    APPDATA_ROOT = Path.home() / ".nekomail"
 DATA_DIR = APPDATA_ROOT / "data"
 MAIL_DIR = DATA_DIR / "mail"
 CONFIG_ENV_PATH = APPDATA_ROOT / "config.env"
@@ -174,8 +180,18 @@ def stop_server(timeout: float = 10.0) -> None:
 
 
 if __name__ == "__main__":
-    # Headless run, useful for testing without the desktop GUI layer.
-    bootstrap()
+    # Headless run: useful for testing without the desktop GUI layer, and
+    # also the real Linux (nekOS) entry point -- provision/install-nekomail.sh
+    # runs this directly as a background daemon, with no GUI layer at all
+    # (see desktop_app.py's module docstring). Catch SetupRequiredError here
+    # rather than letting it crash with a bare traceback in that daemon's
+    # log -- there's no window to show desktop_app.py's setup-required
+    # message in this path.
+    try:
+        bootstrap()
+    except SetupRequiredError as exc:
+        print(f"NekoMail: {exc}")
+        sys.exit(1)
     port = start_server()
     print(f"NekoMail running at http://localhost:{port}/ (Ctrl+C to stop)")
     try:

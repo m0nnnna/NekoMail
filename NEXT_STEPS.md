@@ -193,6 +193,193 @@ Docker's own deferred-packaging note (top of this file) resolved: the app no lon
 - **Android**: Capacitor project scaffolded and synced (`npx cap add android`/`npx cap sync android`), `AndroidManifest.xml` has `android:usesCleartextTraffic="true"` added (blanket, not scoped to a host, since the server URL is user-entered at runtime rather than fixed at build time -- this server has no TLS). **Not built or tested** -- this dev machine has no Android SDK/JDK 11+ installed (confirmed: `gradlew assembleDebug` fails immediately on both counts), so producing and installing a real APK on a device is a step for the user's own environment, same as the already-known real-Android-device-test gap. README documents the build command for when that's available.
 - **Not done this session, left as follow-ups, not accidental gaps**: no code-signing for `NekoMail.exe` (Windows SmartScreen will warn on first run -- acceptable for personal use, revisit if ever distributed further), no custom Android app icon (Capacitor's default placeholder ships as-is), no "start with Windows" auto-launch option, no installer/MSI (portable `--onedir` folder + manual shortcut is the v1 distribution shape). `v1.0.0` git tag intentionally not yet cut -- pending the user's own real-device Android pass and a real (non-network-share) desktop-app run on their normal environment.
 
+## Status: Desktop app rebuilt and verified on local disk (2026-08-04 session)
+
+Repeated the standalone build from a robocopy'd local-disk checkout (`C:\NekoMailBuild`, per the N:-share binary-execution caveat above) to confirm the packaging still works cleanly on this machine, independent of the original 2026-08-03 build environment.
+
+- **Fresh venv build**: `python -m venv backend/.venv` (Python 3.13), `pip install -r requirements.txt -r requirements-desktop.txt` -- all packages resolved and installed with no conflicts.
+- **`build-desktop.ps1` ran clean end-to-end**: `npm install` + `vite build` (frontend), PyInstaller `--onedir` build via `nekomail-desktop.spec` -- no hidden-import errors this time (the `passlib.context` gap from the 2026-08-03 session stayed fixed, as expected since `collect_all()` was already the fix). Produced `backend/dist/NekoMail/NekoMail.exe`.
+- **Live-verified the full first-run + real-run cycle**: launched the fresh exe with no prior `%APPDATA%\NekoMail` -- confirmed `config.env` was generated with fresh `SECRET_KEY`/`MAIL_ENCRYPTION_KEY` and the placeholder password, and the app correctly showed the "Setup required" window instead of starting the server. Quit, edited `config.env` (real password, `APP_PORT=8099` to avoid colliding with the `nekomail-app-1` Docker container still running on 8090 in parallel), relaunched -- confirmed via direct HTTP calls (not just the pywebview window) that migrations ran, the admin user was seeded, `POST /api/auth/login` succeeded with the real password, and the resulting session cookie worked against `GET /api/auth/me`. Killed the process and confirmed the port stopped responding (clean shutdown, no hang).
+- **Note**: this run left real state in `%APPDATA%\NekoMail` on this machine (`config.env` with a test password `TestPass123!`, a seeded SQLite DB) -- flagged to the user rather than assumed disposable, since this is the same per-user data path a real production run of the desktop app would use.
+
+## Status: nekOS (Void Linux) port (2026-08-04 session, live-verified end-to-end except the actual GUI window)
+
+A third packaging target after Docker and the Windows desktop app: running natively
+inside [nekOS](https://github.com/m0nnnna/nekos) (`N:\projects\nekos`), the user's
+custom C/XCB/Cairo desktop environment nested inside WSL2 Void Linux. Full plan at
+`C:\Users\Kake\.claude\plans\refactored-wandering-scroll.md`. **Personal-use scope
+only** -- dev-sync via `robocopy` into the user's own `nekos-void` distro, no public
+GitHub repo, not wired into nekOS's `provision/install-companions.sh` fresh-install
+flow (that's the tier NekoShot/NekoPlayer, nekOS's two existing companion apps, use).
+
+- **Key constraint that shaped this**: nekOS's own bar (`bar/nekos-bar.c`) never
+  implemented a system tray (`_NET_SYSTEM_TRAY`/XEmbed -- see its own `tray_x()`/
+  `TRAY_WIDTH` comment), so `desktop_app.py`'s Windows design (closing the window
+  hides it to a tray icon, which is what keeps IMAP IDLE/poll running in the
+  background) can't port as-is. **Resolution**: decoupled the mail-sync server
+  process from the window process. The server (`launcher.py`) now runs as its own
+  background process, started once at nekOS session start (same treatment nekOS
+  already gives its `xdg-desktop-portal` daemons); the native window is a thin,
+  on-demand *viewer* of that already-running server -- closing it doesn't stop mail
+  sync, and reopening it just points a fresh window at the same server. No `pystray`
+  on Linux at all.
+- **`backend/launcher.py`**: `APPDATA_ROOT` is now a `sys.platform` branch -- Windows
+  keeps `%APPDATA%\NekoMail`, everything else uses `~/.nekomail` (root's home under
+  nekOS's root-run session, i.e. `/root/.nekomail`), same `config.env` +
+  `data/{nekomail.db,mail/}` shape either way. Everything else in the module
+  (`bootstrap()`, migrations, seeding, `start_server()`/`stop_server()`) was already
+  OS-agnostic. Its `__main__` block (reused directly as the Linux background-daemon
+  entry point -- see below) now catches `SetupRequiredError` and prints a message
+  instead of an uncaught traceback, since there's no GUI to show it in that path.
+- **`backend/desktop_app.py`**: branched on `sys.platform` rather than forked --
+  Windows keeps its existing `pystray` tray-icon behavior unchanged; the new Linux
+  path (`_run_linux_viewer`) does **not** call `bootstrap()`/`start_server()` itself
+  (the background server is already up by the time this runs), just opens a
+  `pywebview` window at `http://127.0.0.1:<port>/` (port read from the running
+  server's own `config.env`) and exits normally on close. `import pystray` is now
+  itself gated on `sys.platform == "win32"` so the module still loads on Linux
+  without it installed.
+- **New files, in this repo**: `nekos/install-nekos.sh` + `nekos/README.md` (mirrors
+  `N:\projects\nekoshot\nekos\install-nekos.sh`'s shape exactly) -- run once as root
+  inside the distro after a `robocopy` sync to `/opt/nekomail`. Installs
+  `python3`/`nodejs`/`libwebkit2gtk41`/`python3-gobject`/`gtk+3` via `xbps-install`,
+  builds the frontend (`npm install && npm run build`, copied into
+  `backend/app/static`, same two steps `build-desktop.ps1` does on Windows), creates
+  a `--system-site-packages` venv (needed so `pywebview`'s GTK backend can see the
+  system `python3-gobject`/`webkit2gtk`) with `requirements.txt` + `pywebview` +
+  `pillow` (no `pystray`, no `pyinstaller` -- Windows-only), and installs two
+  `/usr/local/bin` wrappers: `nekomail-server` (foreground, for testing) and
+  `nekomail` (the viewer). No PyInstaller-on-Linux -- unlike Windows, this distro
+  already has its own `python3`, so running via the venv's interpreter directly is
+  enough (same choice NekoShot already made for its own Linux installer).
+- **Three real bugs found and fixed only by actually running this live** (2026-08-04,
+  against the real `nekos-void` WSL distro):
+  1. **Package name**: `webkit2gtk` isn't a real Void package -- it's
+     `libwebkit2gtk41` (GTK+3 port, soup3; there's also a GTK4-only
+     `libwebkitgtk60` that pywebview's GTK backend does not use).
+  2. **Python 3.14 incompatibilities**: this distro's `python3` is 3.14, newer than
+     every other NekoMail deployment target (Docker's Python 3.12, the Windows app's
+     3.13) has ever run against. Two of `requirements.txt`'s exact pins don't work
+     on it: `pydantic==2.10.3` hard-pins `pydantic-core==2.27.1`, which has no cp314
+     wheel -- pip falls back to building it from source via Rust/maturin, which
+     fails outright (PyO3 0.22.x's max supported Python is 3.13, not a
+     missing-toolchain problem). `sqlalchemy==2.0.36`'s declarative-mapping code
+     (`Mapped[X | None]` annotation scanning) hits a genuine Python 3.14 `typing`
+     incompatibility at import time (`TypeError: descriptor '__getitem__' requires a
+     'typing.Union' object but received a 'tuple'`), fixed in later 2.0.x patches.
+     Fix: `nekos/install-nekos.sh` installs everything else exactly as pinned, then
+     lets `pydantic`/`sqlalchemy` float to whatever version this Python actually
+     works with (`pydantic>=2.10,<3`, `sqlalchemy[asyncio]>=2.0` -- resolved live to
+     2.13.4/2.0.51). `cryptography`/`bcrypt` did *not* have this problem -- both ship
+     Python-version-independent `abi3` wheels.
+  3. **Missing `pillow`**: `desktop_app.py`'s `_load_icon()` uses `PIL.Image`
+     unconditionally on both platforms (not gated behind the `sys.platform` branch),
+     but the Linux venv only had `pywebview` added on top of `requirements.txt` --
+     `pillow` ships in Windows' separate `requirements-desktop.txt`, easy to miss
+     since nothing in plain `requirements.txt` imports it. Caught by actually
+     importing `desktop_app` in the venv, not just running the server.
+- **Live-verified** (fresh `nekos-void` WSL distro, full clean reinstall from
+  scratch with all three fixes applied, not just a patched-up first attempt):
+  `sudo sh nekos/install-nekos.sh` completes with no errors; first run of
+  `nekomail-server` creates `/root/.nekomail/config.env` with fresh generated keys
+  and the placeholder password, correctly prints a setup-required message and exits
+  (no traceback) instead of starting the server; after setting a real password,
+  `provision/install-nekomail.sh` starts the background server via `setsid`, a real
+  `POST /api/auth/login` + `GET /api/auth/me` round trip succeeds against it
+  (tested via a small Python script inside the venv, sidestepping several rounds of
+  PowerShell/WSL/curl shell-quoting breakage that had nothing to do with the app
+  itself), and rerunning `install-nekomail.sh` a second time (simulating a second
+  `start-session.sh` call) correctly kills the prior instance and starts exactly one
+  fresh one -- no duplicate process, confirmed via `pgrep`. Also confirmed directly:
+  `python3 -m venv --system-site-packages` really does surface the system
+  `python3-gobject`/`python3-cairo` packages inside the venv (both showed up in
+  `pip list` despite never being pip-installed), `import gi; gi.require_version(
+  'WebKit2', '4.1'); from gi.repository import WebKit2` succeeds (the GI typelib is
+  genuinely discoverable, not just the shared library), and `desktop_app.py` itself
+  imports cleanly under `python3.14` with `sys.platform` correctly detected as
+  `"linux"` and `_linux_server_port()` correctly reading back `8099` from the live
+  server's own `config.env`.
+- **New files, in nekOS's own repo (`N:\projects\nekos`)**: `provision/install-nekomail.sh`
+  (mirrors `install-nekoshot.sh`/`install-nekoplayer.sh`'s idempotent-no-op-until-installed
+  contract) -- but unlike those two PATH/menu-only wiring scripts, this one also
+  **starts the background server**: no-ops if `/opt/nekomail`'s venv/build aren't
+  present, otherwise `pkill`s any stale instance from a prior session (mirrors
+  `start-session.sh`'s own pkill-before-relaunch treatment of Xephyr/D-Bus) and
+  backgrounds a fresh `launcher.py` via `setsid`, logging to `/tmp/nekomail.log`, then
+  writes/refreshes `~/.local/share/applications/nekomail.desktop`
+  (`Exec=nekomail`, icon from the built `backend/app/static/icons/icon-192.png`).
+  Wired into `provision/start-session.sh` right after the existing
+  `install-nekoplayer.sh` call.
+- **Deliberately NOT added to nekOS's `supervisor.sh`** (which watches/auto-restarts
+  the WM/bar/desktop/notify/pet on a crash) -- matches how NekoShot/NekoPlayer are
+  already treated (launch-once, no crash-auto-restart), per this session's own scope
+  decision. A mid-session crash needs a manual `nekomail-server` rerun until/unless
+  that's revisited.
+- **Not touched**: nekOS's public `README.md`/`FEATURES.md` "Also included" section
+  (which documents NekoShot/NekoPlayer as installable-by-default companions via
+  `install-companions.sh`) -- deliberately not extended to mention NekoMail yet,
+  since this pass doesn't wire it into that public fresh-install flow and doing so
+  would misrepresent its actual (personal-use-only) scope.
+## Status: nekOS GUI window live-verified, three more real bugs found (2026-08-05 follow-up session)
+
+The previous session's caveat above ("not yet live-verified: the actual GUI
+window") turned out to hide three genuine, unrelated bugs -- none of them
+what the initial symptom (a blank white window) suggested. Root-caused and
+fixed all three against the user's real `nekos-void` session, end to end:
+login works, the mailbox UI renders correctly, icons included.
+
+1. **Stale `GDK_GL=disable` in the user's live nekOS checkout.** The
+   `nekos-void` WSL distro's own `/root/nekos` git checkout had diverged from
+   `origin/master` (1 ahead, 6 behind) and was missing a fix already present
+   in `N:\projects\nekos`: an old blanket `export GDK_GL=disable` in
+   `start-session.sh` that was previously removed upstream specifically
+   because it silently broke NekoPlayer (a GTK-GL app) -- see that commit's
+   own message, "browser wouldn't launch on fresh installs, NekoPlayer
+   rendered black." NekoMail's WebKitGTK viewer is the same category of app
+   and hit the same symptom. Fixed by setting up SSH access for root in
+   `nekos-void` (no key existed -- see below) and merging `origin/master` in.
+   **This did not actually fix the blank window** (see #3) but was a real,
+   independently-worth-fixing bug in its own right, and needed doing anyway.
+2. **`WAYLAND_DISPLAY` leaking into manual test launches.** Not a bug in the
+   shipped code -- `start-session.sh` already correctly `unset`s it -- but a
+   pitfall worth recording: any ad-hoc relaunch of `desktop_app.py` outside
+   the real session (e.g. for debugging) needs to explicitly unset it too, or
+   GTK may try to reach WSLg's own Wayland compositor instead of the nested
+   Xephyr X11 display at `/tmp/nekos-runtime`.
+3. **The actual root cause: `pywebview` defaults to `private_mode=True`.**
+   On the GTK/WebKitGTK backend, private/incognito mode makes
+   `window.localStorage` itself `null` (not just empty) -- and NekoMail's
+   frontend reads `localStorage` unconditionally on startup (theme/session
+   state), throwing before Vue ever mounts. Result: a blank white window with
+   zero server-side symptoms (every asset loaded fine, confirmed via the
+   access log) and no visible error unless WebKit's own inspector is turned
+   on (`webview.start(debug=True)`) to see the JS console. Fixed in
+   `backend/desktop_app.py`: all three `webview.start()` call sites (both
+   Windows paths and the Linux viewer) now pass `private_mode=False`. Cost
+   real time chasing the wrong layer first (GL/compositing env vars,
+   `GDK_GL`, `WAYLAND_DISPLAY`) before enabling the inspector and seeing the
+   actual `TypeError: null is not an object (evaluating 'localStorage.getItem')`
+   -- **lesson for next time a webview shows a blank page with clean server
+   logs: reach for `debug=True` immediately, don't assume it's a
+   rendering/GPU issue just because the environment is an unusual nested
+   Xephyr/WSLg setup.**
+4. **Separate, smaller bug found right after: missing emoji font.**
+   NekoMail's entire icon system is plain emoji characters (Compose/folder
+   icons, empty-state art -- see `FolderSidebar.vue`/`MessageList.vue`/
+   `ReadingPane.vue`), not an icon font or SVG set. Void's baseline has no
+   emoji glyph coverage (`dejavu-fonts-ttf` doesn't include them), so
+   WebKitGTK rendered every one of them as blank space -- looked exactly like
+   a missing-icon bug, was actually a missing-font one. Fixed by adding
+   `noto-fonts-emoji` to `nekos/install-nekos.sh`'s `xbps-install` list.
+- **Also needed along the way**: generated an SSH key for root in
+  `nekos-void` (none existed) and added it to the user's GitHub account, to
+  make the `origin/master` merge in #1 possible at all -- the repo's remote
+  is SSH-only (`git@github.com:m0nnnna/nekos.git`).
+- **Test state left behind**: this and the prior session's verification left
+  real state in the `nekos-void` distro at `/root/.nekomail` (test password)
+  and `/root/nekos` (real git history changes -- see that repo's own log) --
+  not something to "clean up," this is now the user's real working install.
+
 ## Confirmed decisions (don't relitigate)
 
 - **Auth strategy**: one unified IMAP/SMTP sync engine for all providers (not separate Gmail API / Graph API integrations). Gmail = app-password IMAP/SMTP. Outlook = OAuth2 required (MS deprecated IMAP basic auth) via a free public-client Azure App registration the user creates themselves. Self-hosted = plain IMAP/SMTP password.
