@@ -18,6 +18,7 @@ from config import settings
 from database import AsyncSessionLocal
 from models.account import Account
 from models.folder import Folder
+from services import desktop
 from services.mail import rules as rules_module
 from services.mail import sync as sync_module
 from services.mail.account_conn import imap_params
@@ -82,6 +83,7 @@ async def poll_loop() -> None:
                         continue
                 for r in results:
                     await _broadcast_new_mail(account_id, r)
+                await desktop.on_sync_finished([i for r in results for i in r.new_message_ids])
         except asyncio.CancelledError:
             raise
         except Exception:
@@ -111,6 +113,7 @@ async def _on_idle_push(account_id: uuid.UUID) -> None:
             return
 
     await _broadcast_new_mail(account_id, sync_result)
+    await desktop.on_sync_finished(sync_result.new_message_ids)
 
 
 async def watch_account_idle(account_id: uuid.UUID) -> None:
@@ -227,6 +230,8 @@ async def reconcile_idle_watchers() -> None:
 async def start() -> None:
     _background_tasks.append(asyncio.create_task(poll_loop()))
     _background_tasks.append(asyncio.create_task(reconcile_idle_watchers()))
+    if settings.desktop_mode:
+        _background_tasks.append(asyncio.create_task(desktop.unread_loop()))
 
 
 async def stop() -> None:

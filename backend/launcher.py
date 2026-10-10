@@ -32,16 +32,25 @@ sys.path.insert(0, str(APP_DIR))
 from cryptography.fernet import Fernet  # noqa: E402
 from dotenv import dotenv_values  # noqa: E402
 
-if sys.platform == "win32":
+IS_WINDOWS = sys.platform == "win32"
+
+if IS_WINDOWS:
     APPDATA_ROOT = Path(os.environ["APPDATA"]) / "NekoMail"
+    CONFIG_DIR = APPDATA_ROOT
+    DATA_DIR = APPDATA_ROOT / "data"
+    LEGACY_ROOT = None
 else:
-    # nekOS (Void Linux, WSL2) port -- the session runs as root, so this is
-    # /root/.nekomail. Same single-directory shape as the Windows path
-    # (config.env + data/{nekomail.db, mail/}), just a different root.
-    APPDATA_ROOT = Path.home() / ".nekomail"
-DATA_DIR = APPDATA_ROOT / "data"
+    # Linux desktop (Ultimit / Ubuntu): single-user XDG layout.
+    #   config: ${XDG_CONFIG_HOME:-~/.config}/nekomail/config.env  (0600)
+    #   data:   ${XDG_DATA_HOME:-~/.local/share}/nekomail/{nekomail.db,mail/}
+    # The older nekOS port used ~/.nekomail (config.env + data/); it is
+    # migrated (copied, not moved) on first run -- see _migrate_legacy().
+    CONFIG_DIR = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "nekomail"
+    DATA_DIR = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share") / "nekomail"
+    APPDATA_ROOT = CONFIG_DIR
+    LEGACY_ROOT = Path.home() / ".nekomail"
 MAIL_DIR = DATA_DIR / "mail"
-CONFIG_ENV_PATH = APPDATA_ROOT / "config.env"
+CONFIG_ENV_PATH = CONFIG_DIR / "config.env"
 
 PLACEHOLDER_PASSWORD = "CHANGE_ME"
 
@@ -75,6 +84,42 @@ MAIL_ENCRYPTION_KEY={mail_encryption_key}
 """
 
 
+_LINUX_CONFIG_ENV_TEMPLATE = """\
+# NekoMail desktop configuration (generated on first run).
+# Back this file up -- losing SECRET_KEY/MAIL_ENCRYPTION_KEY without losing
+# the database makes every stored mail account credential permanently
+# undecryptable.
+
+# The native NekoMail window signs in automatically (see ultimit/NOTES.md),
+# so you never need this password on this machine. It only matters if you
+# enable the LAN listener below and sign in from another device.
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD={admin_password}
+
+APP_PORT=8090
+# Loopback only by default. Set to true to also listen on the LAN (e.g. for
+# the Android client); LAN clients use the normal login with the password above.
+LISTEN_LAN=false
+# Must match how NekoMail is actually reached for Outlook OAuth linking to
+# work -- link Outlook accounts from the desktop window (localhost).
+PUBLIC_BASE_URL=http://localhost:8090
+
+# Desktop notification for new inbox mail (one per burst).
+DESKTOP_NOTIFICATIONS=true
+
+# Set to true if this is ever put behind HTTPS.
+COOKIE_SECURE=false
+
+# Optional: enables the "Link Outlook Account" button. Leave blank to disable.
+AZURE_CLIENT_ID=
+AZURE_AUTHORITY=https://login.microsoftonline.com/common
+
+# Generated automatically -- do not edit.
+SECRET_KEY={secret_key}
+MAIL_ENCRYPTION_KEY={mail_encryption_key}
+"""
+
+
 class SetupRequiredError(Exception):
     """Raised when config.env was just created or still has its placeholder
     admin password -- the caller (desktop_app.py) should show setup
@@ -85,19 +130,63 @@ class SetupRequiredError(Exception):
         super().__init__(f"Edit {config_path} and restart NekoMail.")
 
 
+def _write_private(path: Path, text: str) -> None:
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.write(text)
+    path.chmod(0o600)
+
+
+def _migrate_legacy() -> None:
+    """Copy a nekOS-era ~/.nekomail (config.env + data/) into the XDG dirs.
+    Copies rather than moves, so the old directory stays as a backup. Only
+    runs when the new config does not exist yet."""
+    import shutil
+
+    if LEGACY_ROOT is None or CONFIG_ENV_PATH.exists() or not (LEGACY_ROOT / "config.env").is_file():
+        return
+    print(f"NekoMail: migrating {LEGACY_ROOT} -> {CONFIG_DIR} and {DATA_DIR}")
+    _write_private(CONFIG_ENV_PATH, (LEGACY_ROOT / "config.env").read_text(encoding="utf-8"))
+    legacy_data = LEGACY_ROOT / "data"
+    if legacy_data.is_dir():
+        shutil.copytree(legacy_data, DATA_DIR, dirs_exist_ok=True)
+
+
+def _fix_placeholder_password() -> None:
+    """Desktop mode never stops on a placeholder admin password: replace it
+    (e.g. one carried over from the nekOS/Windows template) with a random one."""
+    import re
+
+    text = CONFIG_ENV_PATH.read_text(encoding="utf-8")
+    values = dotenv_values(CONFIG_ENV_PATH)
+    if values.get("ADMIN_PASSWORD") not in (None, "", PLACEHOLDER_PASSWORD):
+        return
+    line = f"ADMIN_PASSWORD={secrets.token_urlsafe(18)}"
+    if re.search(r"^ADMIN_PASSWORD=.*$", text, flags=re.M):
+        text = re.sub(r"^ADMIN_PASSWORD=.*$", line, text, flags=re.M)
+    else:
+        text += f"\n{line}\n"
+    _write_private(CONFIG_ENV_PATH, text)
+
+
 def _ensure_config_env() -> None:
-    APPDATA_ROOT.mkdir(parents=True, exist_ok=True)
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     MAIL_DIR.mkdir(parents=True, exist_ok=True)
+    if not IS_WINDOWS:
+        CONFIG_DIR.chmod(0o700)
+        DATA_DIR.chmod(0o700)
+        _migrate_legacy()
+        MAIL_DIR.mkdir(parents=True, exist_ok=True)
     if not CONFIG_ENV_PATH.exists():
-        CONFIG_ENV_PATH.write_text(
-            _CONFIG_ENV_TEMPLATE.format(
-                placeholder=PLACEHOLDER_PASSWORD,
-                secret_key=secrets.token_hex(32),
-                mail_encryption_key=Fernet.generate_key().decode(),
-            ),
-            encoding="utf-8",
-        )
+        keys = dict(secret_key=secrets.token_hex(32), mail_encryption_key=Fernet.generate_key().decode())
+        if IS_WINDOWS:
+            CONFIG_ENV_PATH.write_text(_CONFIG_ENV_TEMPLATE.format(placeholder=PLACEHOLDER_PASSWORD, **keys), encoding="utf-8")
+        else:
+            _write_private(CONFIG_ENV_PATH, _LINUX_CONFIG_ENV_TEMPLATE.format(admin_password=secrets.token_urlsafe(18), **keys))
+    if not IS_WINDOWS:
+        CONFIG_ENV_PATH.chmod(0o600)
+        _fix_placeholder_password()
 
 
 def _load_env() -> None:
@@ -111,6 +200,8 @@ def _load_env() -> None:
     db_path = (DATA_DIR / "nekomail.db").as_posix()
     os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{db_path}"
     os.environ["MAIL_STORAGE_PATH"] = str(MAIL_DIR)
+    if not IS_WINDOWS:
+        os.environ["DESKTOP_MODE"] = "true"
 
 
 def _run_migrations() -> None:
@@ -137,7 +228,7 @@ def bootstrap():
     SetupRequiredError if the admin password still needs to be set.
     Must be called exactly once, before start_server()."""
     _load_env()
-    if os.environ.get("ADMIN_PASSWORD") == PLACEHOLDER_PASSWORD:
+    if IS_WINDOWS and os.environ.get("ADMIN_PASSWORD") == PLACEHOLDER_PASSWORD:
         raise SetupRequiredError(CONFIG_ENV_PATH)
 
     _run_migrations()
@@ -148,16 +239,24 @@ _server = None
 _server_thread = None
 
 
+def listen_host() -> str:
+    """Windows: 0.0.0.0 (LAN-reachable, so a phone client can reach it).
+    Linux desktop: loopback only unless LISTEN_LAN=true in config.env."""
+    if IS_WINDOWS or os.environ.get("LISTEN_LAN", "").strip().lower() in ("1", "true", "yes", "on"):
+        return "0.0.0.0"
+    return "127.0.0.1"
+
+
 def start_server():
-    """Start uvicorn on 0.0.0.0 (LAN-reachable, so a phone client can reach
-    it) in a background thread. Must be called after bootstrap()."""
+    """Start uvicorn in a background thread (host from listen_host()).
+    Must be called after bootstrap()."""
     global _server, _server_thread
     import uvicorn
 
     from main import app
 
     port = int(os.environ.get("APP_PORT", "8090"))
-    config = uvicorn.Config(app, host="0.0.0.0", port=port, log_level="info")
+    config = uvicorn.Config(app, host=listen_host(), port=port, log_level="info")
     _server = uvicorn.Server(config)
 
     _server_thread = threading.Thread(target=_server.run, daemon=True)
@@ -193,9 +292,17 @@ if __name__ == "__main__":
         print(f"NekoMail: {exc}")
         sys.exit(1)
     port = start_server()
-    print(f"NekoMail running at http://localhost:{port}/ (Ctrl+C to stop)")
+    print(f"NekoMail running at http://localhost:{port}/ on {listen_host()} (Ctrl+C to stop)", flush=True)
+    # systemd stops the service with SIGTERM: shut down gracefully (IDLE
+    # connections, token/unread files) instead of dying mid-sync.
+    import signal
+
+    def _term(*_):
+        stop_server()
+
+    signal.signal(signal.SIGTERM, _term)
     try:
-        while _server_thread.is_alive():
+        while _server_thread is not None and _server_thread.is_alive():
             _server_thread.join(timeout=1.0)
     except KeyboardInterrupt:
         stop_server()

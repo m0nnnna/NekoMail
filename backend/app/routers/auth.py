@@ -1,6 +1,8 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.responses import RedirectResponse
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
@@ -8,6 +10,7 @@ from database import get_db
 from dependencies import CallerContext, get_caller, get_serializer, require_auth
 from models.user import User
 from schemas.auth import LoginRequest, UserOut
+from services import local_auth
 from services.auth_service import authenticate_user
 from services.rate_limiter import clear_failures, is_locked_out, record_failure
 
@@ -44,17 +47,50 @@ async def login(
 
     await clear_failures(ip)
 
+    _set_session_cookie(response, user)
+    return user
+
+
+def _set_session_cookie(response: Response, user: User) -> None:
     s = get_serializer()
-    session_token = s.dumps(str(user.id))
     response.set_cookie(
         key="session",
-        value=session_token,
+        value=s.dumps(str(user.id)),
         httponly=True,
         samesite="lax",
         max_age=86400 * 7,
         secure=settings.cookie_secure,
     )
-    return user
+
+
+# --- Local auto-login for the native window (desktop mode only) ---
+# See services/local_auth.py for the design.
+
+def _require_local(request: Request) -> None:
+    if not local_auth.enabled() or not local_auth.request_is_local(request):
+        raise HTTPException(status_code=404, detail="Not found")
+
+
+@router.post("/local/ticket")
+async def local_ticket(request: Request):
+    _require_local(request)
+    header = request.headers.get("authorization", "")
+    if not header.lower().startswith("bearer ") or not local_auth.check_token(header[7:].strip()):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return {"ticket": local_auth.issue_ticket()}
+
+
+@router.get("/local/session")
+async def local_session(request: Request, ticket: str, db: Annotated[AsyncSession, Depends(get_db)]):
+    _require_local(request)
+    if not local_auth.redeem_ticket(ticket):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    user = (await db.execute(select(User).where(User.is_admin.is_(True)).order_by(User.created_at))).scalars().first()
+    if user is None:
+        raise HTTPException(status_code=503, detail="No user yet")
+    redirect = RedirectResponse("/", status_code=303)
+    _set_session_cookie(redirect, user)
+    return redirect
 
 
 @router.post("/logout")

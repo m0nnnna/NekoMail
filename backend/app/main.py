@@ -14,7 +14,9 @@ from routers import contacts as contacts_router
 from routers import messages as messages_router
 from routers import oauth as oauth_router
 from routers import rules as rules_router
+from routers import ultimit as ultimit_router
 from routers import ws as ws_router
+from services import desktop, local_auth
 from services.mail import scheduler
 
 logging.basicConfig(level=logging.INFO)
@@ -24,11 +26,14 @@ FRONTEND_DIST = Path(__file__).resolve().parent / "static"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    local_auth.init()
     await scheduler.start()
     try:
         yield
     finally:
         await scheduler.stop()
+        local_auth.shutdown()
+        desktop.remove_unread_file()
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -50,7 +55,20 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+class UnreadRefreshMiddleware(BaseHTTPMiddleware):
+    """Flag changes, moves, trash etc. change the unread count: refresh the
+    desktop unread file right after any mutating /api/messages* request."""
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        if settings.desktop_mode and request.method in ("POST", "PATCH", "PUT", "DELETE") \
+                and request.url.path.startswith("/api/messages") and response.status_code < 400:
+            await desktop.refresh_unread()
+        return response
+
+
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(UnreadRefreshMiddleware)
 
 app.include_router(auth_router.router)
 app.include_router(accounts_router.router)
@@ -60,6 +78,7 @@ app.include_router(contacts_router.router)
 app.include_router(oauth_router.router)
 app.include_router(rules_router.router)
 app.include_router(ws_router.router)
+app.include_router(ultimit_router.router)
 
 
 @app.get("/health")

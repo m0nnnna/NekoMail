@@ -1,0 +1,2 @@
+# Test-only: local fake SMTP server used by the Ultimit tests.
+aiosmtpd==1.4.6

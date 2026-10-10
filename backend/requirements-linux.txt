@@ -1,0 +1,7 @@
+# Linux desktop (Ultimit / Ubuntu) deps: the server plus the pywebview window.
+# Needs a venv created with --system-site-packages so pywebview's GTK backend
+# can use the system PyGObject + WebKitGTK (python3-gi, gir1.2-webkit2-4.1).
+-r requirements.txt
+
+pywebview==6.2.1
+python-dotenv==1.0.1

@@ -33,6 +33,16 @@ class Settings(BaseSettings):
     # /api/accounts/oauth/outlook/callback path).
     public_base_url: str = "http://localhost:8090"
 
+    # --- Ultimit / single-user Linux desktop mode (see ultimit/NOTES.md) ---
+    # Set by launcher.py on Linux; never set for Docker or the Windows app.
+    # Enables: local auto-login for the native window (token in
+    # $XDG_RUNTIME_DIR), the unread-count file, desktop notifications.
+    desktop_mode: bool = False
+    # DESKTOP_NOTIFICATIONS=false in config.env turns the notification off.
+    desktop_notifications: bool = True
+    # Command that opens the NekoMail window (notification action target).
+    window_command: str = ""
+
     class Config:
         env_file = ".env"
         extra = "ignore"
