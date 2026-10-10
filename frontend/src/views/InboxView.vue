@@ -2,6 +2,7 @@
 import { ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useMailStore } from "@/stores/mail";
+import NIcon from "@/components/icons/NIcon.vue";
 import FolderSidebar from "@/components/mail/FolderSidebar.vue";
 import MessageList from "@/components/mail/MessageList.vue";
 import ReadingPane from "@/components/mail/ReadingPane.vue";
@@ -17,7 +18,9 @@ function syncViewFromRoute() {
     desired.specialUse === mail.view.specialUse &&
     desired.accountId === mail.view.accountId &&
     desired.folderId === mail.view.folderId;
-  if (!sameView) {
+  // viewLoaded: the store's default view is the unified inbox, which would
+  // otherwise count as "same" and never fetch its first page.
+  if (!sameView || !mail.viewLoaded) {
     mail.setView(desired);
   }
 
@@ -39,7 +42,7 @@ watch(
 
 <template>
   <div class="mail-shell" :class="{ 'has-open-message': !!mail.openMessageId }">
-    <button type="button" class="hamburger" @click="sidebarOpen = !sidebarOpen">☰</button>
+    <button type="button" class="hamburger" @click="sidebarOpen = !sidebarOpen"><NIcon name="menu" :size="18" /></button>
     <FolderSidebar class="pane-sidebar" :class="{ open: sidebarOpen }" @navigate="sidebarOpen = false" />
     <MessageList class="pane-list" />
     <ReadingPane class="pane-reading" />

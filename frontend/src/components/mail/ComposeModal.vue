@@ -6,6 +6,7 @@ import { useAccountsStore } from "@/stores/accounts";
 import { useMailStore } from "@/stores/mail";
 import { usePgpStore } from "@/stores/pgp";
 import { api } from "@/api/client";
+import NIcon from "@/components/icons/NIcon.vue";
 import { buildEncryptedMime } from "@/utils/pgpMime";
 
 const AUTOSAVE_INTERVAL_MS = 20000;
@@ -237,7 +238,7 @@ onBeforeUnmount(() => clearInterval(autosaveTimer));
       <div class="compose-header">
         <span>{{ form.inReplyToMessageId ? "Reply" : draftId ? "Edit draft" : "New message" }}</span>
         <div class="spacer" />
-        <button type="button" class="icon-btn" @click="close">✕</button>
+        <button type="button" class="icon-btn" @click="close"><NIcon name="close" :size="14" /></button>
       </div>
 
       <div class="compose-body">
@@ -268,8 +269,8 @@ onBeforeUnmount(() => clearInterval(autosaveTimer));
 
         <div class="attachments">
           <span v-for="(f, i) in form.attachments" :key="i" class="attachment-chip">
-            📎 {{ f.name }}
-            <button type="button" @click="removeFile(i)">✕</button>
+            <NIcon name="attach" :size="14" /> {{ f.name }}
+            <button type="button" @click="removeFile(i)"><NIcon name="close" :size="11" /></button>
           </span>
           <label class="attach-btn">
             + Attach
@@ -280,13 +281,13 @@ onBeforeUnmount(() => clearInterval(autosaveTimer));
         <div v-if="pgp.hasKeypair" class="pgp-row">
           <label class="encrypt-toggle">
             <input v-model="encrypt" type="checkbox" @change="markDirty" />
-            🔒 Encrypt with PGP (Bcc disabled while on)
+            <NIcon name="lock" :size="14" /> Encrypt with PGP (Bcc disabled while on)
           </label>
           <p v-if="encrypt && checkingKeys" class="hint">Checking recipient keys…</p>
           <p v-else-if="encrypt && missingKeyRecipients.length" class="warning">
             No public key on file for: {{ missingKeyRecipients.join(", ") }} — add it under PGP first.
           </p>
-          <p v-else-if="encrypt && recipientEmails.length" class="hint ok">🔓→🔒 All recipients have a key. Also encrypted to yourself, so your Sent copy stays readable.</p>
+          <p v-else-if="encrypt && recipientEmails.length" class="hint ok"><NIcon name="lock" :size="13" /> All recipients have a key. Also encrypted to yourself, so your Sent copy stays readable.</p>
           <div v-if="encrypt && !pgp.isUnlocked" class="unlock-row">
             <input v-model="encryptPassphrase" type="password" placeholder="Your PGP passphrase" @keyup.enter="ensureUnlockedForEncrypt" />
           </div>

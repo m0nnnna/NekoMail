@@ -1,4 +1,6 @@
 <script setup>
+import NIcon from "@/components/icons/NIcon.vue";
+
 const props = defineProps({
   message: { type: Object, required: true },
   selected: { type: Boolean, default: false },
@@ -35,13 +37,13 @@ function senderLabel() {
       @change="emit('toggle-select', message.id)"
     />
     <button type="button" class="star" :class="{ starred: message.flags.includes('\\Flagged') }" @click.stop="emit('toggle-star', message.id)">
-      {{ message.flags.includes('\\Flagged') ? "★" : "☆" }}
+      <NIcon name="star" :size="16" :filled="message.flags.includes('\\Flagged')" />
     </button>
     <span v-if="!message.flags.includes('\\Seen')" class="unread-dot" />
     <span class="sender">{{ senderLabel() }}</span>
     <span class="subject">{{ message.subject || "(no subject)" }}</span>
-    <span class="snippet">{{ message.is_encrypted ? "🔒 Encrypted message" : message.snippet }}</span>
-    <span v-if="message.has_attachments" class="attach" title="Has attachments">📎</span>
+    <span class="snippet"><template v-if="message.is_encrypted"><NIcon name="lock" :size="13" /> Encrypted message</template><template v-else>{{ message.snippet }}</template></span>
+    <span v-if="message.has_attachments" class="attach" title="Has attachments"><NIcon name="attach" :size="14" /></span>
     <span class="date">{{ formatDate(message.date) }}</span>
   </div>
 </template>

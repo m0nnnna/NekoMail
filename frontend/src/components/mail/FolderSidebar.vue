@@ -1,9 +1,10 @@
 <script setup>
-import { computed, onMounted, reactive, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useAccountsStore } from "@/stores/accounts";
 import { useMailStore } from "@/stores/mail";
 import { useComposeStore } from "@/stores/compose";
+import NIcon from "@/components/icons/NIcon.vue";
 
 const emit = defineEmits(["navigate"]);
 
@@ -17,13 +18,23 @@ function startCompose() {
   if (accountId) compose.openNew(accountId);
 }
 
+// "c" opens a new message (Gmail-style), unless you're typing somewhere.
+function onKeydown(e) {
+  if (e.key !== "c" || e.ctrlKey || e.metaKey || e.altKey || compose.open) return;
+  const t = e.target;
+  if (t && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName))) return;
+  if (!accounts.items.length) return;
+  e.preventDefault();
+  startCompose();
+}
+onMounted(() => window.addEventListener("keydown", onKeydown));
+onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
+
 const expanded = reactive({});
 
 const SPECIAL_ORDER = ["inbox", "flagged", "sent", "drafts", "archive", "all", "junk", "trash"];
-const ICONS = {
-  inbox: "📥", sent: "📤", drafts: "📝", trash: "🗑️", junk: "🚫",
-  archive: "🗄️", flagged: "⭐", important: "❗", all: "📚",
-};
+const ICON_NAMES = ["inbox", "sent", "drafts", "trash", "junk", "archive", "flagged", "important", "all"];
+const iconFor = (folder) => (ICON_NAMES.includes(folder.special_use) ? folder.special_use : "folder");
 
 async function loadAll() {
   if (!accounts.loaded) await accounts.fetchAll();
@@ -77,17 +88,17 @@ function isFolderActive(accountId, folderId) {
 
 <template>
   <nav class="sidebar" @click="emit('navigate')">
-    <button type="button" class="compose-btn" :disabled="!accounts.items.length" @click.stop="startCompose">✏️ Compose</button>
+    <button type="button" class="compose-btn" :disabled="!accounts.items.length" @click.stop="startCompose"><NIcon name="compose" :size="15" /> Compose</button>
 
     <RouterLink to="/mail" class="sidebar-item unified" :class="{ active: isUnifiedActive }">
-      <span class="icon">📬</span>
+      <span class="icon"><NIcon name="mailbox" /></span>
       <span class="label">Unified Inbox</span>
       <span v-if="unifiedUnread" class="paw-badge">{{ unifiedUnread }}</span>
     </RouterLink>
 
     <div v-for="account in accounts.items" :key="account.id" class="account-group">
       <button type="button" class="account-header" @click.stop="expanded[account.id] = !expanded[account.id]">
-        <span class="chevron" :class="{ open: expanded[account.id] }">▸</span>
+        <span class="chevron" :class="{ open: expanded[account.id] }"><NIcon name="chevron" :size="12" /></span>
         <span class="account-label">{{ account.label }}</span>
       </button>
       <ul v-show="expanded[account.id]" class="folder-list">
@@ -98,7 +109,7 @@ function isFolderActive(accountId, folderId) {
             :class="{ active: isFolderActive(account.id, folder.id) }"
             :style="{ paddingLeft: `${1 + depthOf(folder) * 0.9}rem` }"
           >
-            <span class="icon">{{ ICONS[folder.special_use] || "📁" }}</span>
+            <span class="icon"><NIcon :name="iconFor(folder)" /></span>
             <span class="label">{{ displayName(folder) }}</span>
             <span v-if="mail.unreadCounts[folder.id]" class="paw-badge">{{ mail.unreadCounts[folder.id] }}</span>
           </RouterLink>

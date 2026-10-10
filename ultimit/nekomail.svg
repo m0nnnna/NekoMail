@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- NekoMail for Ultimit: chamfered dark tile, thin-line envelope with cat ears -->
+  <path d="M4 4h48l8 8v48H12l-8-8z" fill="#07090b" stroke="#d4ebff" stroke-opacity=".55" stroke-width="1.5" stroke-linejoin="miter"/>
+  <g fill="none" stroke="#d4ebff" stroke-width="2" stroke-linejoin="miter" stroke-linecap="square">
+    <path d="M13 24h38v24H13z"/>
+    <path d="M13 24l19 15 19-15"/>
+    <path d="M13 24l3-9 7 6M51 24l-3-9-7 6" stroke-width="1.8"/>
+  </g>
+  <path d="M8 8v6M8 8h6M56 56v-6M56 56h-6" fill="none" stroke="#d4ebff" stroke-width="1.5"/>
+</svg>

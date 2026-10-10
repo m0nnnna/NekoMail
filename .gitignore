@@ -35,3 +35,4 @@ android-client/android/app/debug/
 .vscode/
 .DS_Store
 Thumbs.db
+backend/app/static/

@@ -30,7 +30,7 @@ async function onSubmit() {
 <template>
   <div class="login-page">
     <form class="login-card" @submit.prevent="onSubmit">
-      <h1 class="wordmark logo-ears">NekoMail</h1>
+      <h1 class="wordmark logo-ears"><span class="wm-ears" aria-hidden="true" />NekoMail</h1>
       <p class="tagline">nya~ welcome back</p>
 
       <label>

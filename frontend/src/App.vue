@@ -6,6 +6,7 @@ import { useUiStore } from "@/stores/ui";
 import { useMailStore } from "@/stores/mail";
 import { useComposeStore } from "@/stores/compose";
 import { usePgpStore } from "@/stores/pgp";
+import { useThemeStore } from "@/stores/theme";
 import { connectWs } from "@/api/ws";
 import ComposeModal from "@/components/mail/ComposeModal.vue";
 
@@ -15,6 +16,7 @@ const mail = useMailStore();
 const compose = useComposeStore();
 const pgp = usePgpStore();
 const route = useRoute();
+const theme = useThemeStore();
 
 let closeWs = null;
 
@@ -41,7 +43,7 @@ watch(
 <template>
   <div class="app-shell">
     <header v-if="!route.meta.public && auth.status === 'authenticated'" class="topbar">
-      <RouterLink to="/mail" class="wordmark logo-ears">NekoMail</RouterLink>
+      <RouterLink to="/mail" class="wordmark logo-ears"><span class="wm-ears" aria-hidden="true" />NekoMail</RouterLink>
       <nav class="top-nav">
         <RouterLink to="/mail" active-class="active">Mail</RouterLink>
         <RouterLink to="/accounts" active-class="active">Accounts</RouterLink>
@@ -49,7 +51,7 @@ watch(
         <RouterLink to="/pgp" active-class="active">PGP</RouterLink>
       </nav>
       <div class="spacer" />
-      <button class="icon-btn" @click="ui.toggleDark()">{{ ui.dark ? "☀️" : "🌙" }}</button>
+      <button v-if="!theme.isUltimit" class="icon-btn" @click="ui.toggleDark()">{{ ui.dark ? "☀️" : "🌙" }}</button>
       <span class="whoami">{{ auth.user?.display_name || auth.user?.username }}</span>
       <button class="icon-btn" @click="auth.logout()">Sign out</button>
     </header>
@@ -60,6 +62,7 @@ watch(
 
 <style>
 @import "@/theme/tokens.css";
+@import "@/theme/ultimit.css";
 </style>
 
 <style scoped>

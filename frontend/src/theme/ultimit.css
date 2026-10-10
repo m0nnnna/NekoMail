@@ -1,0 +1,402 @@
+/*
+ * Ultimit theme for NekoMail -- matches the Ultimit desktop (Altimit OS from
+ * the .hack games): glass-black panels, thin light lines, small-caps
+ * letter-spaced mono labels (Share Tech Mono), Michroma display headings,
+ * chamfered corners, corner-bracket accents and the desktop skin's accent.
+ *
+ * Active when <html data-theme="ultimit">; <html data-skin="..."> is one of
+ * mine / amber / silver / verdant (token values mirror shell/Theme.qml in the
+ * Ultimit repo). The original neko theme lives in tokens.css, untouched:
+ * this file only remaps its custom properties and restyles on top.
+ */
+
+/* ---------- skins (shell/Theme.qml) ---------- */
+:root[data-theme="ultimit"] {
+  --u-bg1: #050607; --u-bg2: #1c2026;
+  --u-panel: rgba(13, 15, 18, 0.8); --u-solid: #0d0f12;
+  --u-wash: rgba(255, 255, 255, 0.05); --u-wash2: rgba(255, 255, 255, 0.09);
+  --u-fg: #eef1f4; --u-dim: #8d949e; --u-dim-soft: #626a75;
+  --u-line: rgba(235, 240, 245, 0.16); --u-line-strong: rgba(235, 240, 245, 0.48);
+  --u-accent: #d4ebff; --u-on-accent: #07090b; --u-accent-wash: rgba(212, 235, 255, 0.11);
+  --u-ok: #8fe3b0; --u-warn: #ffd98f; --u-bad: #ff8a8a;
+  color-scheme: dark;
+}
+:root[data-theme="ultimit"][data-skin="amber"] {
+  --u-bg1: #b84d05; --u-bg2: #f8cf96;
+  --u-panel: rgba(34, 17, 5, 0.78); --u-solid: #221105;
+  --u-wash: rgba(255, 220, 180, 0.07); --u-wash2: rgba(255, 220, 180, 0.13);
+  --u-fg: #fff4e6; --u-dim: #dcb48c; --u-dim-soft: #a98560;
+  --u-line: rgba(255, 226, 196, 0.2); --u-line-strong: rgba(255, 226, 196, 0.55);
+  --u-accent: #ffb04a; --u-on-accent: #2a1404; --u-accent-wash: rgba(255, 176, 74, 0.14);
+}
+:root[data-theme="ultimit"][data-skin="silver"] {
+  --u-bg1: #f6f7f9; --u-bg2: #aeb5bf;
+  --u-panel: rgba(248, 249, 251, 0.82); --u-solid: #f8f9fb;
+  --u-wash: rgba(20, 30, 45, 0.05); --u-wash2: rgba(20, 30, 45, 0.09);
+  --u-fg: #14171b; --u-dim: #5a626d; --u-dim-soft: #8a919b;
+  --u-line: rgba(20, 24, 30, 0.16); --u-line-strong: rgba(20, 24, 30, 0.5);
+  --u-accent: #2c5b88; --u-on-accent: #ffffff; --u-accent-wash: rgba(44, 91, 136, 0.11);
+  --u-ok: #1f8a52; --u-warn: #a66b00; --u-bad: #c0392b;
+  color-scheme: light;
+}
+:root[data-theme="ultimit"][data-skin="verdant"] {
+  --u-bg1: #062a0c; --u-bg2: #79d24f;
+  --u-panel: rgba(5, 20, 8, 0.78); --u-solid: #051408;
+  --u-wash: rgba(200, 255, 180, 0.06); --u-wash2: rgba(200, 255, 180, 0.12);
+  --u-fg: #effbe9; --u-dim: #a3cc95; --u-dim-soft: #6f9462;
+  --u-line: rgba(220, 255, 205, 0.18); --u-line-strong: rgba(220, 255, 205, 0.5);
+  --u-accent: #b9ff8c; --u-on-accent: #082008; --u-accent-wash: rgba(185, 255, 140, 0.12);
+}
+
+/* ---------- remap NekoMail's tokens ---------- */
+:root[data-theme="ultimit"] {
+  --u-display: "Michroma", "Chakra Petch", sans-serif;
+  --u-mono: "Share Tech Mono", ui-monospace, monospace;
+  --u-ui: "Chakra Petch", "Share Tech Mono", system-ui, sans-serif;
+  --cut: 7px;
+
+  --font-sans: var(--u-ui);
+  --bg-body: var(--u-bg1);
+  --bg-primary: var(--u-panel);
+  --bg-elevated: var(--u-wash);
+  --bg-hover: var(--u-wash2);
+  --text-primary: var(--u-fg);
+  --text-secondary: var(--u-dim);
+  --text-muted: var(--u-dim-soft);
+  --border: var(--u-line);
+  --accent: var(--u-accent);
+  --accent-strong: var(--u-accent);
+  --accent-contrast: var(--u-on-accent);
+  --success: var(--u-ok);
+  --warning: var(--u-warn);
+  --danger: var(--u-bad);
+  --unread-dot: var(--u-accent);
+  --star: var(--u-accent);
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --shadow-soft: none;
+}
+
+/* ---------- page ---------- */
+:root[data-theme="ultimit"] body {
+  background: linear-gradient(135deg, var(--u-bg1), var(--u-bg2)) fixed;
+  color: var(--u-fg);
+  font-family: var(--u-ui);
+  font-size: 14px;
+}
+:root[data-theme="ultimit"] ::selection { background: var(--u-accent); color: var(--u-on-accent); }
+
+/* window-corner brackets */
+:root[data-theme="ultimit"] body::after {
+  content: "";
+  position: fixed;
+  inset: 5px;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0.55;
+  --b: var(--u-accent);
+  background:
+    linear-gradient(var(--b), var(--b)) top left / 14px 1px,
+    linear-gradient(var(--b), var(--b)) top left / 1px 14px,
+    linear-gradient(var(--b), var(--b)) top right / 14px 1px,
+    linear-gradient(var(--b), var(--b)) top right / 1px 14px,
+    linear-gradient(var(--b), var(--b)) bottom left / 14px 1px,
+    linear-gradient(var(--b), var(--b)) bottom left / 1px 14px,
+    linear-gradient(var(--b), var(--b)) bottom right / 14px 1px,
+    linear-gradient(var(--b), var(--b)) bottom right / 1px 14px;
+  background-repeat: no-repeat;
+}
+
+/* scrollbars (WebKit) */
+:root[data-theme="ultimit"] ::-webkit-scrollbar { width: 8px; height: 8px; }
+:root[data-theme="ultimit"] ::-webkit-scrollbar-track { background: transparent; }
+:root[data-theme="ultimit"] ::-webkit-scrollbar-thumb { background: var(--u-line-strong); }
+
+/* ---------- top bar ---------- */
+:root[data-theme="ultimit"] .topbar {
+  background: var(--u-panel);
+  border-bottom: 1px solid var(--u-line);
+  padding: 0.55rem 1.25rem;
+}
+:root[data-theme="ultimit"] .wordmark {
+  font-family: var(--u-display);
+  font-weight: 400;
+  font-size: 0.8rem;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--u-fg);
+  display: inline-flex;
+  align-items: center;
+}
+:root[data-theme="ultimit"] .logo-ears::before,
+:root[data-theme="ultimit"] .logo-ears::after { display: none; }
+.wm-ears { display: none; }
+/* the neko stays, small: two ears in the accent colour before the wordmark */
+:root[data-theme="ultimit"] .wm-ears {
+  display: inline-block;
+  width: 1.5em;
+  height: 0.7em;
+  margin-right: 0.9em;
+  background: var(--u-accent);
+  clip-path: polygon(0 100%, 0 0, 38% 70%, 62% 70%, 100% 0, 100% 100%, 88% 100%, 88% 38%, 62% 100%, 38% 100%, 12% 38%, 12% 100%);
+}
+:root[data-theme="ultimit"] .top-nav { margin-left: 1.25rem; gap: 0.2rem; }
+:root[data-theme="ultimit"] .top-nav a {
+  font-family: var(--u-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--u-dim);
+  padding: 0.4rem 0.8rem;
+  position: relative;
+}
+:root[data-theme="ultimit"] .top-nav a:hover { background: var(--u-wash); color: var(--u-fg); }
+:root[data-theme="ultimit"] .top-nav a.active {
+  background: transparent;
+  color: var(--u-accent);
+}
+:root[data-theme="ultimit"] .top-nav a.active::after {
+  content: "";
+  position: absolute;
+  left: 0.8rem; right: 0.8rem; bottom: -0.55rem;
+  height: 2px;
+  background: var(--u-accent);
+}
+:root[data-theme="ultimit"] .whoami {
+  font-family: var(--u-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* ---------- buttons: chamfered, thin line, mono caps ---------- */
+:root[data-theme="ultimit"] :is(
+  .icon-btn, .compose-btn, .send-btn, .attach-btn, .attachment-chip,
+  .bulk-toolbar button, .list-toolbar button, .move-option, .move-cancel,
+  .login-card button, .cc-toggle
+) {
+  border: 1px solid var(--u-line-strong);
+  border-radius: 0;
+  background-color: transparent;
+  color: var(--u-fg);
+  font-family: var(--u-mono);
+  font-size: 0.68rem;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  --edge: var(--u-line-strong);
+  clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut)));
+  background-image:
+    linear-gradient(to top right, transparent calc(50% - 1px), var(--edge) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px)),
+    linear-gradient(to top right, transparent calc(50% - 1px), var(--edge) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px));
+  background-size: var(--cut) var(--cut), var(--cut) var(--cut);
+  background-position: top right, bottom left;
+  background-repeat: no-repeat;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+:root[data-theme="ultimit"] :is(.icon-btn, .compose-btn, .send-btn, .attach-btn, .bulk-toolbar button, .list-toolbar button, .login-card button):hover:not(:disabled) {
+  background-color: var(--u-wash2);
+  border-color: var(--u-accent);
+  --edge: var(--u-accent);
+  color: var(--u-accent);
+}
+:root[data-theme="ultimit"] :is(.compose-btn, .send-btn, .login-card button) {
+  background-color: var(--u-accent);
+  border-color: var(--u-accent);
+  --edge: var(--u-accent);
+  color: var(--u-on-accent);
+}
+:root[data-theme="ultimit"] :is(.compose-btn, .send-btn, .login-card button):hover:not(:disabled) {
+  background-color: var(--u-accent);
+  color: var(--u-on-accent);
+  filter: brightness(1.12);
+}
+:root[data-theme="ultimit"] :is(.icon-btn.danger, .bulk-toolbar .danger) {
+  color: var(--u-bad);
+  border-color: var(--u-bad);
+  --edge: var(--u-bad);
+}
+:root[data-theme="ultimit"] .compose-btn { justify-content: center; padding: 0.7rem 0.75rem; }
+:root[data-theme="ultimit"] :is(.move-option, .move-cancel) { border-color: transparent; background-image: none; clip-path: none; width: 100%; }
+:root[data-theme="ultimit"] .move-option:hover { background-color: var(--u-wash2); color: var(--u-accent); }
+:root[data-theme="ultimit"] button:disabled { opacity: 0.45; cursor: default; }
+:root[data-theme="ultimit"] .pane-toolbar { gap: 0.35rem; }
+
+/* ---------- inputs ---------- */
+:root[data-theme="ultimit"] :is(input[type="text"], input[type="password"], input[type="email"], input[type="number"], input:not([type]), select, textarea) {
+  border-radius: 0;
+  border: 1px solid var(--u-line);
+  background: var(--u-wash);
+  color: var(--u-fg);
+  font-family: var(--u-ui);
+}
+:root[data-theme="ultimit"] :is(input, select, textarea):focus {
+  outline: none;
+  border-color: var(--u-accent);
+  box-shadow: inset 0 0 0 1px var(--u-accent-wash);
+}
+:root[data-theme="ultimit"] input::placeholder, :root[data-theme="ultimit"] textarea::placeholder { color: var(--u-dim-soft); }
+:root[data-theme="ultimit"] input[type="checkbox"] { accent-color: var(--u-accent); }
+:root[data-theme="ultimit"] :is(.field label, label) { font-family: var(--u-mono); letter-spacing: 0.14em; }
+:root[data-theme="ultimit"] .field label { text-transform: uppercase; font-size: 0.66rem; color: var(--u-dim); }
+
+/* ---------- sidebar ---------- */
+:root[data-theme="ultimit"] .sidebar {
+  background: var(--u-panel);
+  border-right: 1px solid var(--u-line);
+  padding: 0.9rem 0.6rem;
+}
+:root[data-theme="ultimit"] .sidebar-item {
+  font-family: var(--u-mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--u-fg);
+  padding: 0.55rem 0.75rem;
+  position: relative;
+}
+:root[data-theme="ultimit"] .sidebar-item .icon { display: inline-flex; color: var(--u-dim); }
+:root[data-theme="ultimit"] .sidebar-item:hover { background: var(--u-wash2); }
+:root[data-theme="ultimit"] .sidebar-item.active {
+  background: var(--u-accent-wash);
+  color: var(--u-accent);
+  box-shadow: inset 2px 0 0 var(--u-accent);
+}
+:root[data-theme="ultimit"] .sidebar-item.active .icon { color: var(--u-accent); }
+:root[data-theme="ultimit"] .account-header {
+  font-family: var(--u-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.26em;
+  color: var(--u-dim);
+  margin-top: 0.3rem;
+  border-bottom: 1px solid var(--u-line);
+}
+:root[data-theme="ultimit"] .chevron { display: inline-flex; }
+:root[data-theme="ultimit"] .paw-badge {
+  border-radius: 0;
+  background: var(--u-accent-wash);
+  color: var(--u-accent);
+  border: 1px solid var(--u-accent);
+  font-family: var(--u-mono);
+  font-weight: 400;
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  height: 1.5em;
+  clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
+}
+
+/* ---------- message list ---------- */
+:root[data-theme="ultimit"] .message-list { background: var(--u-panel); border-right: 1px solid var(--u-line); }
+:root[data-theme="ultimit"] :is(.bulk-toolbar, .list-toolbar) { background: var(--u-wash); border-bottom: 1px solid var(--u-line); }
+:root[data-theme="ultimit"] .bulk-toolbar .count { font-family: var(--u-mono); letter-spacing: 0.14em; text-transform: uppercase; }
+:root[data-theme="ultimit"] .row { border-bottom: 1px solid var(--u-line); position: relative; }
+:root[data-theme="ultimit"] .row.unread { box-shadow: inset 2px 0 0 var(--u-accent); }
+:root[data-theme="ultimit"] .row.unread .sender,
+:root[data-theme="ultimit"] .row.unread .subject { font-weight: 700; color: var(--u-fg); }
+:root[data-theme="ultimit"] .row.selected { background: var(--u-accent-wash); }
+:root[data-theme="ultimit"] .row { min-width: 0; gap: 0.5rem; }
+/* the 380px list column has no room for a snippet: sender, subject, date */
+:root[data-theme="ultimit"] .row .snippet { display: none; }
+:root[data-theme="ultimit"] .row .sender { width: 116px; }
+:root[data-theme="ultimit"] .row .subject { flex: 1; max-width: none; min-width: 0; color: var(--u-dim); }
+:root[data-theme="ultimit"] .row.unread .subject { color: var(--u-fg); }
+:root[data-theme="ultimit"] .row .date { width: 58px; }
+:root[data-theme="ultimit"] .row .unread-dot { border-radius: 0; width: 6px; height: 6px; transform: rotate(45deg); }
+:root[data-theme="ultimit"] .row .date,
+:root[data-theme="ultimit"] .row .snippet { font-family: var(--u-mono); font-size: 0.74rem; }
+:root[data-theme="ultimit"] .row .date { letter-spacing: 0.06em; }
+:root[data-theme="ultimit"] .star { color: var(--u-dim-soft); display: inline-flex; }
+:root[data-theme="ultimit"] .star.starred { color: var(--u-accent); }
+:root[data-theme="ultimit"] .loading { font-family: var(--u-mono); letter-spacing: 0.2em; text-transform: uppercase; font-size: 0.7rem; }
+
+/* ---------- reading pane ---------- */
+:root[data-theme="ultimit"] .reading-pane { background: var(--u-panel); }
+:root[data-theme="ultimit"] .pane-toolbar { border-bottom: 1px solid var(--u-line); }
+:root[data-theme="ultimit"] .msg-header { border-bottom: 1px solid var(--u-line); padding: 1rem 1.25rem 0.8rem; }
+:root[data-theme="ultimit"] .msg-header h2 {
+  font-family: var(--u-display);
+  font-weight: 400;
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+}
+:root[data-theme="ultimit"] .msg-header p { font-family: var(--u-mono); letter-spacing: 0.04em; }
+:root[data-theme="ultimit"] .msg-header .from { color: var(--u-accent); }
+:root[data-theme="ultimit"] .body-frame { border: 1px solid var(--u-line-strong); box-shadow: none; color-scheme: light; background: #fff; }
+:root[data-theme="ultimit"] .body-text { font-family: var(--u-ui); }
+:root[data-theme="ultimit"] .attachments { border-bottom: 1px solid var(--u-line); }
+:root[data-theme="ultimit"] .attachment-chip { text-decoration: none; text-transform: none; letter-spacing: 0.06em; }
+:root[data-theme="ultimit"] .empty-state { font-family: var(--u-mono); font-size: 0.74rem; letter-spacing: 0.18em; text-transform: uppercase; }
+:root[data-theme="ultimit"] .empty-state .mascot { color: var(--u-dim-soft); margin-bottom: 0.4rem; line-height: 0; }
+:root[data-theme="ultimit"] .pgp-panel { border: 1px solid var(--u-line-strong); }
+:root[data-theme="ultimit"] .popover-overlay,
+:root[data-theme="ultimit"] .compose-backdrop { background: rgba(0, 0, 0, 0.4); }
+:root[data-theme="ultimit"][data-skin="silver"] .popover-overlay,
+:root[data-theme="ultimit"][data-skin="silver"] .compose-backdrop { background: rgba(20, 30, 45, 0.25); }
+
+/* ---------- compose ---------- */
+:root[data-theme="ultimit"] .compose-panel {
+  background: var(--u-solid);
+  border: 1px solid var(--u-line-strong);
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+}
+:root[data-theme="ultimit"] .compose-header {
+  background: transparent;
+  color: var(--u-accent);
+  border-bottom: 1px solid var(--u-line);
+  font-family: var(--u-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+:root[data-theme="ultimit"] .compose-header .icon-btn { border: none; background-image: none; clip-path: none; color: var(--u-dim); }
+:root[data-theme="ultimit"] .compose-footer { border-top: 1px solid var(--u-line); }
+:root[data-theme="ultimit"] .body-input { font-family: var(--u-ui); }
+:root[data-theme="ultimit"] .attachment-chip button { background-image: none; clip-path: none; border: none; padding: 0; color: var(--u-dim); }
+
+/* ---------- popovers ---------- */
+:root[data-theme="ultimit"] .move-picker { background: var(--u-solid); border: 1px solid var(--u-line-strong); }
+:root[data-theme="ultimit"] .move-picker-title { font-family: var(--u-mono); letter-spacing: 0.24em; }
+
+/* ---------- login ---------- */
+:root[data-theme="ultimit"] .login-card {
+  background: var(--u-solid);
+  border: 1px solid var(--u-line-strong);
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+}
+:root[data-theme="ultimit"] .login-card button { justify-content: center; padding: 0.7rem; margin-top: 0.6rem; }
+:root[data-theme="ultimit"] .login-card .wordmark { justify-content: center; font-size: 1rem; margin-bottom: 0.4rem; }
+:root[data-theme="ultimit"] .tagline { font-family: var(--u-mono); letter-spacing: 0.2em; text-transform: uppercase; font-size: 0.68rem; }
+
+/* corner brackets on the floating panels */
+:root[data-theme="ultimit"] :is(.compose-panel, .login-card, .move-picker, .reading-pane.empty-state) { position: relative; }
+:root[data-theme="ultimit"] :is(.compose-panel, .login-card, .move-picker)::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  pointer-events: none;
+  --b: var(--u-accent);
+  background:
+    linear-gradient(var(--b), var(--b)) top left / 10px 1px,
+    linear-gradient(var(--b), var(--b)) top left / 1px 10px,
+    linear-gradient(var(--b), var(--b)) bottom right / 10px 1px,
+    linear-gradient(var(--b), var(--b)) bottom right / 1px 10px;
+  background-repeat: no-repeat;
+  opacity: 0.8;
+}
+
+/* ---------- other views (accounts / rules / pgp): headings and cards ---------- */
+:root[data-theme="ultimit"] :is(h1, h2, h3) { font-family: var(--u-display); font-weight: 400; letter-spacing: 0.08em; }
+:root[data-theme="ultimit"] :is(h1, h2):not(.wordmark) { font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.2em; }
+:root[data-theme="ultimit"] a { color: var(--u-accent); }
+:root[data-theme="ultimit"] a.attachment-chip, :root[data-theme="ultimit"] .top-nav a, :root[data-theme="ultimit"] .sidebar-item { color: inherit; }
+:root[data-theme="ultimit"] .top-nav a.active { color: var(--u-accent); }
+:root[data-theme="ultimit"] .sidebar-item { color: var(--u-fg); }
+:root[data-theme="ultimit"] .sidebar-item.active { color: var(--u-accent); }
+:root[data-theme="ultimit"] .cc-toggle { padding: 0.3rem 0.6rem; align-self: flex-start; }
+:root[data-theme="ultimit"] .attach-btn { padding: 0.3rem 0.6rem; }

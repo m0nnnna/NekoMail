@@ -191,8 +191,12 @@ async def _run_notifier(args: list[str]) -> None:
             proc.kill()  # our own child only
             await proc.wait()
             return
+        err_text = err.decode(errors="replace").strip()
         if proc.returncode != 0:
-            logger.warning("notification command failed (%s): %s", proc.returncode, err.decode(errors="replace").strip())
+            # notify-send exits 1 (but still shows the notification) when the
+            # server doesn't advertise actions; only other failures are news.
+            level = logging.INFO if "not supported" in err_text else logging.WARNING
+            logger.log(level, "notification command exited %s: %s", proc.returncode, err_text)
         elif out.decode().strip() == "default":
             await asyncio.create_subprocess_exec(
                 *window_command(), stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.DEVNULL,

@@ -7,6 +7,7 @@ import { usePgpStore } from "@/stores/pgp";
 import { rewriteCidLinks, sanitizeEmailHtml } from "@/utils/sanitizeHtml";
 import { decryptPgpMessage } from "@/utils/pgpMime";
 import { api } from "@/api/client";
+import NIcon from "@/components/icons/NIcon.vue";
 import MoveFolderPicker from "./MoveFolderPicker.vue";
 
 const mail = useMailStore();
@@ -131,25 +132,27 @@ async function doMove(folderId) {
     <div v-if="mail.loadingOpenMessage" class="empty-state">Loading…</div>
     <template v-else-if="message">
       <div class="pane-toolbar">
-        <button type="button" class="icon-btn" @click="goBack">← Back</button>
+        <button type="button" class="icon-btn" @click="goBack"><NIcon name="back" :size="14" only /> Back</button>
         <template v-if="isDraftFolder">
           <button type="button" class="icon-btn" @click="compose.openDraft(message)">Continue editing</button>
         </template>
         <template v-else>
-          <button type="button" class="icon-btn" @click="compose.openReply(message, 'reply')">Reply</button>
-          <button type="button" class="icon-btn" @click="compose.openReply(message, 'reply_all')">Reply All</button>
-          <button type="button" class="icon-btn" @click="compose.openForward(message)">Forward</button>
+          <button type="button" class="icon-btn" @click="compose.openReply(message, 'reply')"><NIcon name="reply" :size="14" only /> Reply</button>
+          <button type="button" class="icon-btn" @click="compose.openReply(message, 'reply_all')"><NIcon name="replyall" :size="14" only /> Reply All</button>
+          <button type="button" class="icon-btn" @click="compose.openForward(message)"><NIcon name="forward" :size="14" only /> Forward</button>
         </template>
         <div class="spacer" />
         <button type="button" class="icon-btn" @click="toggleRead">
+          <NIcon :name="message.flags.includes('\\Seen') ? 'mailbox' : 'mailopen'" :size="14" only />
           {{ message.flags.includes('\\Seen') ? "Mark unread" : "Mark read" }}
         </button>
         <button type="button" class="icon-btn" @click="toggleStar">
+          <NIcon name="star" :size="14" only :filled="message.flags.includes('\\Flagged')" />
           {{ message.flags.includes('\\Flagged') ? "Unstar" : "Star" }}
         </button>
-        <button type="button" class="icon-btn" @click="doArchive">Archive</button>
-        <button type="button" class="icon-btn danger" @click="doTrash">Delete</button>
-        <button v-if="mail.isSingleFolderView" type="button" class="icon-btn" @click="movePickerOpen = true">Move to…</button>
+        <button type="button" class="icon-btn" @click="doArchive"><NIcon name="archive" :size="14" only /> Archive</button>
+        <button type="button" class="icon-btn danger" @click="doTrash"><NIcon name="trash" :size="14" only /> Delete</button>
+        <button v-if="mail.isSingleFolderView" type="button" class="icon-btn" @click="movePickerOpen = true"><NIcon name="move" :size="14" only /> Move to…</button>
       </div>
 
       <div v-if="movePickerOpen" class="popover-overlay" @click="movePickerOpen = false">
@@ -166,7 +169,7 @@ async function doMove(folderId) {
 
       <div v-if="!message.is_encrypted && message.attachments.length" class="attachments">
         <a v-for="att in message.attachments" :key="att.id" :href="attachmentUrl(att)" target="_blank" class="attachment-chip">
-          📎 {{ att.filename || "attachment" }}
+          <NIcon name="attach" :size="14" /> {{ att.filename || "attachment" }}
         </a>
       </div>
 
@@ -176,7 +179,7 @@ async function doMove(folderId) {
              show; the real attachments only exist post-decryption below. -->
 
         <div v-if="!decrypted" class="pgp-panel">
-          <p class="pgp-locked">🔒 This message is PGP-encrypted.</p>
+          <p class="pgp-locked"><NIcon name="lock" :size="15" /> This message is PGP-encrypted.</p>
           <div v-if="!pgp.isUnlocked" class="unlock-row">
             <input v-model="decryptPassphrase" type="password" placeholder="Your PGP passphrase" @keyup.enter="doDecrypt" />
           </div>
@@ -185,13 +188,13 @@ async function doMove(folderId) {
         </div>
         <template v-else>
           <p class="pgp-status" :class="{ verified: decrypted.verified === true, unverified: decrypted.verified === false }">
-            <template v-if="decrypted.verified === true">✅ Signature verified</template>
-            <template v-else-if="decrypted.verified === false">⚠️ Signature verification failed</template>
-            <template v-else>🔓 Decrypted (sender's key unknown — signature not checked)</template>
+            <template v-if="decrypted.verified === true"><NIcon name="check" :size="14" /> Signature verified</template>
+            <template v-else-if="decrypted.verified === false"><NIcon name="warn" :size="14" /> Signature verification failed</template>
+            <template v-else><NIcon name="unlock" :size="14" /> Decrypted (sender's key unknown — signature not checked)</template>
           </p>
           <div v-if="decrypted.attachments.length" class="attachments">
             <button v-for="(att, i) in decrypted.attachments" :key="i" type="button" class="attachment-chip" @click="downloadDecryptedAttachment(att)">
-              📎 {{ att.filename }}
+              <NIcon name="attach" :size="14" /> {{ att.filename }}
             </button>
           </div>
           <pre class="body-text">{{ decrypted.bodyText || "(no content)" }}</pre>
@@ -204,7 +207,7 @@ async function doMove(folderId) {
     </template>
   </div>
   <div v-else class="reading-pane empty-state">
-    <p class="mascot">🐾</p>
+    <p class="mascot"><NIcon name="cat" :size="40" /></p>
     <p>Select a message to read it, nya~</p>
   </div>
 </template>

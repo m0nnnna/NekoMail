@@ -14,6 +14,7 @@ export const useMailStore = defineStore("mail", {
     offset: 0,
     hasMore: true,
     loadingMessages: false,
+    viewLoaded: false, // false until the first setView() has fetched a page
 
     selectedIds: new Set(),
 
@@ -52,6 +53,7 @@ export const useMailStore = defineStore("mail", {
 
     // --- Message list (paged) ---
     setView(view) {
+      this.viewLoaded = true;
       this.view = view;
       this.messages = [];
       this.offset = 0;

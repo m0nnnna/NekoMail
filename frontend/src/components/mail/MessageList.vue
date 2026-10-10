@@ -2,6 +2,7 @@
 import { ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useMailStore } from "@/stores/mail";
+import NIcon from "@/components/icons/NIcon.vue";
 import VirtualList from "./VirtualList.vue";
 import MessageRow from "./MessageRow.vue";
 import MoveFolderPicker from "./MoveFolderPicker.vue";
@@ -87,7 +88,7 @@ async function bulkMove(targetFolderId) {
         </template>
       </VirtualList>
       <div v-else-if="!mail.loadingMessages" class="empty-state">
-        <p class="mascot">🐾</p>
+        <p class="mascot"><NIcon name="cat" :size="40" /></p>
         <p>No mail here, nya~</p>
       </div>
       <div v-if="mail.loadingMessages" class="loading">Loading…</div>
