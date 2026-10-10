@@ -25,6 +25,7 @@ closes. Mail sync keeps going either way. No `pystray` on this path.
 """
 import sys
 import threading
+import time
 from pathlib import Path
 
 if sys.platform != "win32":
@@ -381,6 +382,28 @@ def _run_linux_viewer() -> None:
 
     loaded = threading.Event()
     window.events.loaded += loaded.set
+
+    def watch_skin():
+        # WebKitGTK throttles page timers while the window is unfocused, so the
+        # frontend's skin poll stalls until it's focused again. Watch Ultimit's
+        # shell.json from here instead and push the change into the page.
+        cfg = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "ultimit" / "shell.json"
+        last = None
+        while True:
+            try:
+                mtime = cfg.stat().st_mtime
+            except OSError:
+                mtime = None
+            if last is not None and mtime != last:
+                time.sleep(1.1)  # past the skin endpoint's 1 s cache
+                try:
+                    window.evaluate_js("window.__nekomailRefreshSkin && window.__nekomailRefreshSkin()")
+                except Exception:
+                    pass  # window closing or page not loaded yet
+            last = mtime
+            time.sleep(1.0)
+
+    threading.Thread(target=watch_skin, daemon=True).start()
 
     def connect():
         if not _ensure_server(port):

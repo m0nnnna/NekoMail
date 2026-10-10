@@ -11,6 +11,10 @@ const pinia = createPinia();
 app.use(pinia);
 app.use(router);
 
-useThemeStore(pinia).start();
+const themeStore = useThemeStore(pinia);
+themeStore.start();
+// The native window pushes Ultimit skin changes here (page timers are
+// throttled while the window is unfocused, so polling alone lags).
+window.__nekomailRefreshSkin = () => themeStore.refresh();
 
 app.mount("#app");
