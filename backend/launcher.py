@@ -177,6 +177,7 @@ def _ensure_config_env() -> None:
         CONFIG_DIR.chmod(0o700)
         DATA_DIR.chmod(0o700)
         _migrate_legacy()
+        DATA_DIR.chmod(0o700)  # copytree copies the source dir's mode onto it
         MAIL_DIR.mkdir(parents=True, exist_ok=True)
     if not CONFIG_ENV_PATH.exists():
         keys = dict(secret_key=secrets.token_hex(32), mail_encryption_key=Fernet.generate_key().decode())

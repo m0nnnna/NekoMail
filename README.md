@@ -10,6 +10,10 @@ All 10 phases of the original build plan are code-complete and browser-verified:
 
 FastAPI (async SQLAlchemy + Alembic) backend, Vue 3 + Vite + Pinia frontend, SQLite storage. Standalone Windows desktop app (pywebview + PyInstaller) is the primary deployment; Docker Compose remains supported as an alternate path. See the sibling projects NekoTicket and NekoBooru for the conventions this follows.
 
+## Ultimit / Linux desktop
+
+On Ubuntu with the Ultimit desktop (or any Linux desktop), NekoMail runs as a per-user systemd service plus a single-instance window with automatic local login, desktop notifications and an Ultimit-skin-following theme: `sh ultimit/install-ultimit.sh`, then `nekomail`. See `ultimit/NOTES.md`.
+
 ## Getting started
 
 ### Standalone desktop app (recommended, Windows)

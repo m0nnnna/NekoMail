@@ -14,18 +14,14 @@ Closing the window hides it instead of exiting, so the poll loop / IMAP IDLE
 watchers keep running in the background. Only the tray's "Quit" does a real,
 graceful shutdown.
 
-Linux (nekOS/Void): nekOS's own bar (bar/nekos-bar.c) never implemented a
-system tray -- see its tray_x()/TRAY_WIDTH comment ("no XEmbed/
-_NET_SYSTEM_TRAY protocol") -- so hide-to-tray has nowhere to render. Instead
-the mail-sync server runs as its own separate background process, started
-once at nekOS session start by provision/install-nekomail.sh (same treatment
-the xdg-desktop-portal daemons get in start-session.sh), independent of any
-window. This module becomes a thin, on-demand *viewer* on Linux: it does not
-call launcher.bootstrap()/start_server() itself -- it just opens a pywebview
-window against the already-running server, and exits normally when that
-window is closed. Mail sync keeps going in the background either way. No
-`pystray` import at all on this path (not installed by nekos/install-nekos.sh
-either -- there's nothing for it to attach to).
+Linux (Ultimit / Ubuntu, formerly nekOS): there is no system tray to hide to, so
+the mail-sync server and the window are two independent processes. The server
+(launcher.py, normally the `nekomail.service` systemd user unit, see
+ultimit/NOTES.md) runs in the background whether or not a window is open; this
+module is a thin *viewer* on Linux: single instance (flock + unix socket in
+$XDG_RUNTIME_DIR/nekomail), starts the server if it is not running, signs in
+through the local auto-login ticket (no login page), and exits when its window
+closes. Mail sync keeps going either way. No `pystray` on this path.
 """
 import sys
 import threading
@@ -180,7 +176,7 @@ def _ensure_server(port: int, timeout: float = 90.0) -> bool:
     try:
         r = subprocess.run(
             ["systemctl", "--user", "start", "nekomail.service"],
-            capture_output=True, timeout=30,
+            capture_output=True, timeout=10,
         )
         started = r.returncode == 0
     except Exception:
