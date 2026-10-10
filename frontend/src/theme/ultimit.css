@@ -174,7 +174,8 @@
 :root[data-theme="ultimit"] :is(
   .icon-btn, .compose-btn, .send-btn, .attach-btn, .attachment-chip,
   .bulk-toolbar button, .list-toolbar button, .move-option, .move-cancel,
-  .login-card button, .cc-toggle
+  .login-card button, .cc-toggle,
+  .app-shell > :not(.topbar, .mail-shell, .compose-backdrop) button:not(.dismiss, .remove-row)
 ) {
   border: 1px solid var(--u-line-strong);
   border-radius: 0;
@@ -199,24 +200,24 @@
   gap: 0.45em;
   transition: background-color 0.15s, color 0.15s, border-color 0.15s;
 }
-:root[data-theme="ultimit"] :is(.icon-btn, .compose-btn, .send-btn, .attach-btn, .bulk-toolbar button, .list-toolbar button, .login-card button):hover:not(:disabled) {
+:root[data-theme="ultimit"] :is(.icon-btn, .compose-btn, .send-btn, .attach-btn, .bulk-toolbar button, .list-toolbar button, .login-card button, .app-shell > :not(.topbar, .mail-shell, .compose-backdrop) button:not(.dismiss, .remove-row)):hover:not(:disabled) {
   background-color: var(--u-wash2);
   border-color: var(--u-accent);
   --edge: var(--u-accent);
   color: var(--u-accent);
 }
-:root[data-theme="ultimit"] :is(.compose-btn, .send-btn, .login-card button) {
+:root[data-theme="ultimit"] :is(.compose-btn, .send-btn, .login-card button, .app-shell > :not(.topbar, .mail-shell, .compose-backdrop) button.primary) {
   background-color: var(--u-accent);
   border-color: var(--u-accent);
   --edge: var(--u-accent);
   color: var(--u-on-accent);
 }
-:root[data-theme="ultimit"] :is(.compose-btn, .send-btn, .login-card button):hover:not(:disabled) {
+:root[data-theme="ultimit"] :is(.compose-btn, .send-btn, .login-card button, .app-shell > :not(.topbar, .mail-shell, .compose-backdrop) button.primary):hover:not(:disabled) {
   background-color: var(--u-accent);
   color: var(--u-on-accent);
   filter: brightness(1.12);
 }
-:root[data-theme="ultimit"] :is(.icon-btn.danger, .bulk-toolbar .danger) {
+:root[data-theme="ultimit"] :is(.icon-btn.danger, .bulk-toolbar .danger, .app-shell > :not(.topbar, .mail-shell, .compose-backdrop) button.danger) {
   color: var(--u-bad);
   border-color: var(--u-bad);
   --edge: var(--u-bad);

@@ -61,7 +61,8 @@ async def refresh_unread() -> int | None:
         return None
     try:
         count = await compute_unread()
-        if count != _last_unread:
+        # Also rewrite if the file vanished (tmpfs cleanup, someone deleted it).
+        if count != _last_unread or not desktop_env.unread_path().exists():
             desktop_env.write_private_file(desktop_env.unread_path(), f"{count}\n")
             _last_unread = count
         return count
