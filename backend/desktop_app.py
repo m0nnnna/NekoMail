@@ -300,7 +300,13 @@ class _SingleInstance:
                 with conn:
                     try:
                         conn.settimeout(2)
-                        cmd, _, arg = conn.recv(512).decode(errors="replace").strip().partition(" ")
+                        data = b""
+                        while b"\n" not in data and len(data) < 65536:  # mailto: routes can be long
+                            chunk = conn.recv(4096)
+                            if not chunk:
+                                break
+                            data += chunk
+                        cmd, _, arg = data.decode(errors="replace").strip().partition(" ")
                         if cmd == "raise":
                             on_raise(arg.strip())
                     except OSError:
@@ -339,6 +345,17 @@ def _ultimit_focus() -> None:
         pass
 
 
+def _start_route(arg: str) -> str:
+    """`/route` -> itself; `mailto:...` -> `/mail?compose=<uri>`; else ''."""
+    from urllib.parse import quote
+
+    if arg.startswith("/"):
+        return arg
+    if arg[:7].lower() == "mailto:":
+        return "/mail?compose=" + quote(arg, safe="")
+    return ""
+
+
 def _run_linux_viewer() -> None:
     """The `nekomail` window command (Ultimit / Ubuntu).
 
@@ -349,8 +366,10 @@ def _run_linux_viewer() -> None:
     """
     import os
 
-    # Optional first argument: an app route to open, e.g. `nekomail /mail`.
-    start_path = next((a for a in sys.argv[1:] if a.startswith("/")), "")
+    # Optional first argument: an app route to open, e.g. `nekomail /mail`,
+    # or a mailto: link (the .desktop entry is the x-scheme-handler/mailto
+    # handler), which opens a prefilled compose window.
+    start_path = next((_start_route(a) for a in sys.argv[1:] if _start_route(a)), "")
     instance = _SingleInstance()
     if not instance.acquire():
         sys.exit(0 if instance.ask_owner_to_raise(start_path) else 1)

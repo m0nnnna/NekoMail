@@ -21,6 +21,35 @@ function blankDraft(accountId) {
   };
 }
 
+// RFC 6068 mailto: URI -> {to, cc, bcc, subject, bodyText}. Unknown headers are ignored.
+export function parseMailto(uri) {
+  const out = { to: "", cc: "", bcc: "", subject: "", bodyText: "" };
+  const m = /^mailto:([^?]*)(?:\?(.*))?$/is.exec((uri || "").trim());
+  if (!m) return out;
+  const dec = (v) => {
+    try { return decodeURIComponent(v.replace(/\+/g, "%20")); } catch { return v; }
+  };
+  const to = [dec(m[1])].filter(Boolean);
+  const cc = [];
+  const bcc = [];
+  for (const pair of (m[2] || "").split("&")) {
+    if (!pair) continue;
+    const [k, ...rest] = pair.split("=");
+    const v = dec(rest.join("="));
+    switch (dec(k).toLowerCase()) {
+      case "to": if (v) to.push(v); break;
+      case "cc": if (v) cc.push(v); break;
+      case "bcc": if (v) bcc.push(v); break;
+      case "subject": out.subject = v; break;
+      case "body": out.bodyText = v.replace(/\r\n/g, "\n"); break;
+    }
+  }
+  out.to = to.join(", ");
+  out.cc = cc.join(", ");
+  out.bcc = bcc.join(", ");
+  return out;
+}
+
 export const useComposeStore = defineStore("compose", {
   state: () => ({
     open: false,
@@ -29,6 +58,10 @@ export const useComposeStore = defineStore("compose", {
   actions: {
     openNew(accountId) {
       this.draft = blankDraft(accountId);
+      this.open = true;
+    },
+    openMailto(accountId, uri) {
+      this.draft = { ...blankDraft(accountId), ...parseMailto(uri) };
       this.open = true;
     },
     openReply(message, mode) {
